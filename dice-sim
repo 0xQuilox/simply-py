@@ -1,0 +1,387 @@
+# ============================================================
+#  DICE SIMULATOR
+#  Phase 1 — Game Development Course (Age 10+)
+# ============================================================
+#
+#  CONCEPTS COVERED:
+#    - Functions          (def roll_dice, show_dice_face, etc.)
+#    - Loops              (for loop to roll multiple dice)
+#    - Variables          (total, player scores)
+#    - Lists              (storing dice results, player names)
+#    - Input / Output     (input(), print())
+#    - Conditions         (if / elif / else to determine winner)
+#    - Import / modules   (random)
+#    - f-strings          (formatted output)
+# ============================================================
+
+import random   # Needed for random dice rolls
+import time     # Needed for the dramatic rolling animation
+
+
+# ──────────────────────────────────────────────
+#  DATA: DICE FACES
+#  A dictionary maps each number (1–6) to its ASCII art face.
+#  This is a great introduction to dictionaries (key → value pairs).
+# ──────────────────────────────────────────────
+DICE_FACES = {
+    1: [
+        "┌─────────┐",
+        "│         │",
+        "│    ●    │",
+        "│         │",
+        "└─────────┘"
+    ],
+    2: [
+        "┌─────────┐",
+        "│  ●      │",
+        "│         │",
+        "│      ●  │",
+        "└─────────┘"
+    ],
+    3: [
+        "┌─────────┐",
+        "│  ●      │",
+        "│    ●    │",
+        "│      ●  │",
+        "└─────────┘"
+    ],
+    4: [
+        "┌─────────┐",
+        "│  ●   ●  │",
+        "│         │",
+        "│  ●   ●  │",
+        "└─────────┘"
+    ],
+    5: [
+        "┌─────────┐",
+        "│  ●   ●  │",
+        "│    ●    │",
+        "│  ●   ●  │",
+        "└─────────┘"
+    ],
+    6: [
+        "┌─────────┐",
+        "│  ●   ●  │",
+        "│  ●   ●  │",
+        "│  ●   ●  │",
+        "└─────────┘"
+    ],
+}
+
+
+# ──────────────────────────────────────────────
+#  FUNCTION: display_welcome
+#  Job: Show the game title and rules
+# ──────────────────────────────────────────────
+def display_welcome():
+    print("=" * 50)
+    print("        🎲  DICE SIMULATOR  🎲")
+    print("=" * 50)
+    print("Roll dice, build your total, beat your opponent!")
+    print()
+
+
+# ──────────────────────────────────────────────
+#  FUNCTION: roll_single_die
+#  Job: Simulate rolling one die
+#  Returns: a random integer between 1 and 6
+# ──────────────────────────────────────────────
+def roll_single_die():
+    return random.randint(1, 6)   # randint(1, 6) includes both 1 and 6
+
+
+# ──────────────────────────────────────────────
+#  FUNCTION: roll_multiple_dice
+#  Job: Roll a chosen number of dice and return all results
+#  Parameters:
+#    num_dice — how many dice to roll
+#  Returns: a list of dice results
+# ──────────────────────────────────────────────
+def roll_multiple_dice(num_dice):
+    results = []   # Start with an empty list
+
+    for i in range(num_dice):          # Repeat once for each die
+        result = roll_single_die()     # Roll one die
+        results.append(result)         # Add the result to our list
+
+    return results   # Return the whole list
+
+
+# ──────────────────────────────────────────────
+#  FUNCTION: rolling_animation
+#  Job: Print a fun animation while the dice "roll"
+#       Uses time.sleep() to create a dramatic pause
+# ──────────────────────────────────────────────
+def rolling_animation():
+    print("\n🎲 Rolling", end="")
+    for _ in range(4):            # Repeat 4 times
+        time.sleep(0.3)           # Pause for 0.3 seconds
+        print(".", end="", flush=True)   # Print a dot without a newline
+    print(" 🎲\n")
+
+
+# ──────────────────────────────────────────────
+#  FUNCTION: display_dice
+#  Job: Print the ASCII art for one or more dice side by side
+#  Parameters:
+#    dice_values — a list of integers (e.g. [3, 5, 2])
+# ──────────────────────────────────────────────
+def display_dice(dice_values):
+    # Each die face has 5 rows. We print all dice row by row.
+    for row in range(5):   # 5 rows per die face
+        row_string = ""
+        for value in dice_values:
+            row_string += DICE_FACES[value][row] + "  "   # Add spacing between dice
+        print(row_string)
+    print()
+
+
+# ──────────────────────────────────────────────
+#  FUNCTION: calculate_total
+#  Job: Add up all values in a list
+#  Parameters:
+#    dice_results — a list of integers
+#  Returns: the sum (total)
+# ──────────────────────────────────────────────
+def calculate_total(dice_results):
+    total = 0                        # Start at zero
+    for value in dice_results:       # Go through each dice result
+        total = total + value        # Add it to the running total
+    return total
+
+    # Note: Python also has a built-in sum() function that does this:
+    #   return sum(dice_results)
+    # But writing it manually first teaches the concept better!
+
+
+# ──────────────────────────────────────────────
+#  FUNCTION: get_num_dice
+#  Job: Ask the player how many dice to roll, with validation
+#  Returns: an integer between 1 and 6
+# ──────────────────────────────────────────────
+def get_num_dice(player_name):
+    while True:
+        raw = input(f"{player_name}, how many dice do you want to roll? (1–6): ")
+        try:
+            num = int(raw)
+            if 1 <= num <= 6:
+                return num
+            else:
+                print("Please choose between 1 and 6 dice.")
+        except ValueError:
+            print("Please type a number.")
+
+
+# ──────────────────────────────────────────────
+#  FUNCTION: player_turn
+#  Job: Handle one player's full turn
+#  Parameters:
+#    player_name — the name of the current player
+#  Returns: the total score for this turn
+# ──────────────────────────────────────────────
+def player_turn(player_name):
+    print(f"\n{'─' * 30}")
+    print(f"  {player_name}'s turn!")
+    print(f"{'─' * 30}")
+
+    # Ask how many dice to roll
+    num_dice = get_num_dice(player_name)
+
+    # Roll the dice
+    rolling_animation()
+    results = roll_multiple_dice(num_dice)
+
+    # Display the results
+    display_dice(results)
+
+    # Calculate and display the total
+    total = calculate_total(results)
+    print(f"  Dice rolled: {results}")
+    print(f"  Total for this turn: {total}")
+
+    return total
+
+
+# ──────────────────────────────────────────────
+#  FUNCTION: determine_winner
+#  Job: Compare two scores and announce the winner
+#  Parameters:
+#    player1_name, player1_score
+#    player2_name, player2_score
+# ──────────────────────────────────────────────
+def determine_winner(player1_name, player1_score, player2_name, player2_score):
+    print("\n" + "=" * 40)
+    print("         📊  FINAL SCORES")
+    print("=" * 40)
+    print(f"  {player1_name}: {player1_score} points")
+    print(f"  {player2_name}: {player2_score} points")
+    print("─" * 40)
+
+    if player1_score > player2_score:
+        print(f"\n🏆  {player1_name} WINS!")
+    elif player2_score > player1_score:
+        print(f"\n🏆  {player2_name} WINS!")
+    else:
+        print("\n🤝  It's a TIE!")
+
+
+# ──────────────────────────────────────────────
+#  FUNCTION: multi_round_game
+#  Job: Play multiple rounds and track cumulative scores
+#       This introduces the concept of score tracking across turns
+# ──────────────────────────────────────────────
+def multi_round_game(player1_name, player2_name, num_rounds):
+    # Initialise scores — both players start at 0
+    scores = {
+        player1_name: 0,    # Dictionary: maps player name → score
+        player2_name: 0,
+    }
+
+    print(f"\n🎮 Starting {num_rounds}-round game!")
+
+    # Loop through each round
+    for round_number in range(1, num_rounds + 1):
+        print(f"\n\n  ⭐ ROUND {round_number} of {num_rounds}")
+
+        # Each player takes a turn
+        p1_score = player_turn(player1_name)
+        p2_score = player_turn(player2_name)
+
+        # Add round scores to cumulative totals
+        scores[player1_name] += p1_score    # += means "add to the current value"
+        scores[player2_name] += p2_score
+
+        # Show the running total after each round
+        print(f"\n  📈 Running totals:")
+        print(f"     {player1_name}: {scores[player1_name]}")
+        print(f"     {player2_name}: {scores[player2_name]}")
+
+    # After all rounds, determine the winner
+    determine_winner(
+        player1_name, scores[player1_name],
+        player2_name, scores[player2_name]
+    )
+
+
+# ──────────────────────────────────────────────
+#  FUNCTION: single_player_mode
+#  Job: Let one player roll and try to hit a target score
+# ──────────────────────────────────────────────
+def single_player_mode():
+    target = random.randint(15, 25)   # A random target between 15 and 25
+    total = 0
+    turns = 0
+
+    print(f"\n🎯 Single Player Challenge!")
+    print(f"   Roll dice to reach exactly {target} points or as close as possible.")
+    print(f"   You have 3 turns.\n")
+
+    for turn in range(1, 4):   # 3 turns
+        print(f"\nTurn {turn} of 3 — Your total so far: {total}")
+        num_dice = get_num_dice("You")
+        rolling_animation()
+        results = roll_multiple_dice(num_dice)
+        display_dice(results)
+        round_total = calculate_total(results)
+        total += round_total
+        print(f"  This roll: {round_total}  |  Running total: {total}")
+
+    # Calculate final result
+    difference = abs(total - target)
+    print(f"\n{'=' * 40}")
+    print(f"  Target was: {target}")
+    print(f"  Your total: {total}")
+    print(f"  Difference: {difference}")
+
+    if difference == 0:
+        print("  🎉 PERFECT SCORE! Amazing!")
+    elif difference <= 3:
+        print("  ⭐ So close! Great effort!")
+    else:
+        print("  Keep practising!")
+
+
+# ──────────────────────────────────────────────
+#  FUNCTION: choose_game_mode
+#  Job: Let the player choose between single or multiplayer
+#  Returns: a string — "single" or "multi"
+# ──────────────────────────────────────────────
+def choose_game_mode():
+    print("\nGame Mode:")
+    print("  1 - Single Player (challenge mode)")
+    print("  2 - Two Players")
+
+    while True:
+        choice = input("Choose (1 or 2): ").strip()
+        if choice == "1":
+            return "single"
+        elif choice == "2":
+            return "multi"
+        else:
+            print("Please type 1 or 2.")
+
+
+# ──────────────────────────────────────────────
+#  FUNCTION: get_player_names
+#  Job: Ask for both player names
+#  Returns: two strings
+# ──────────────────────────────────────────────
+def get_player_names():
+    p1 = input("Player 1 name: ").strip()
+    if not p1:
+        p1 = "Player 1"   # Default name if nothing is typed
+
+    p2 = input("Player 2 name: ").strip()
+    if not p2:
+        p2 = "Player 2"
+
+    return p1, p2
+
+
+# ──────────────────────────────────────────────
+#  FUNCTION: get_num_rounds
+#  Job: Ask how many rounds to play
+#  Returns: an integer between 1 and 5
+# ──────────────────────────────────────────────
+def get_num_rounds():
+    while True:
+        raw = input("How many rounds? (1–5): ")
+        try:
+            n = int(raw)
+            if 1 <= n <= 5:
+                return n
+            else:
+                print("Please choose between 1 and 5 rounds.")
+        except ValueError:
+            print("Please type a number.")
+
+
+# ──────────────────────────────────────────────
+#  FUNCTION: main
+#  Job: Entry point — controls overall flow
+# ──────────────────────────────────────────────
+def main():
+    display_welcome()
+
+    while True:   # Play again loop
+        mode = choose_game_mode()
+
+        if mode == "single":
+            single_player_mode()
+        else:
+            p1_name, p2_name = get_player_names()
+            num_rounds = get_num_rounds()
+            multi_round_game(p1_name, p2_name, num_rounds)
+
+        print("\n" + "-" * 40)
+        again = input("Play again? (yes / no): ").strip().lower()
+        if again not in ["yes", "y"]:
+            print("\nThanks for playing! 🎲")
+            break
+
+
+# ──────────────────────────────────────────────
+#  ENTRY POINT
+# ──────────────────────────────────────────────
+if __name__ == "__main__":
+    main()
