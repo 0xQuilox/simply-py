@@ -1,0 +1,1344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Game Lab — Phase 1</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ─────────────────────────────────────────────────
+     TEACHER NOTE: CSS Variables = like variables in Python!
+     We define colours once here and reuse them everywhere.
+     Change --accent below and the whole page updates.
+  ───────────────────────────────────────────────── */
+  :root {
+    --bg:        #0f0e17;
+    --surface:   #1a1828;
+    --card:      #221f35;
+    --border:    #2e2b48;
+    --accent:    #ff6b6b;
+    --accent2:   #ffd93d;
+    --accent3:   #6bcb77;
+    --accent4:   #4d96ff;
+    --text:      #fffffe;
+    --muted:     #a9a6c0;
+    --radius:    16px;
+    --font-head: 'Fredoka One', cursive;
+    --font-body: 'Nunito', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Starfield background */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 20% 30%, rgba(255,255,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 80% 10%, rgba(255,255,255,0.3) 0%, transparent 100%),
+      radial-gradient(1.5px 1.5px at 50% 60%, rgba(255,255,255,0.35) 0%, transparent 100%),
+      radial-gradient(1px 1px at 10% 80%, rgba(255,255,255,0.25) 0%, transparent 100%),
+      radial-gradient(1px 1px at 90% 70%, rgba(255,255,255,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 35% 15%, rgba(255,255,255,0.2) 0%, transparent 100%),
+      radial-gradient(1.5px 1.5px at 70% 85%, rgba(255,255,255,0.25) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── HEADER ── */
+  header {
+    text-align: center;
+    padding: 40px 20px 20px;
+    position: relative; z-index: 1;
+  }
+  header h1 {
+    font-family: var(--font-head);
+    font-size: clamp(2.2rem, 6vw, 3.8rem);
+    letter-spacing: 1px;
+    background: linear-gradient(135deg, var(--accent2) 0%, var(--accent) 50%, var(--accent4) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  header p {
+    color: var(--muted);
+    font-size: 1rem;
+    margin-top: 6px;
+    font-weight: 600;
+  }
+
+  /* ── CONCEPT PILL ── */
+  .concept-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin: 14px auto 0;
+    max-width: 700px;
+  }
+  .pill {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 4px 14px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+  }
+  .pill.v { color: #ffd93d; border-color: #ffd93d44; background: #ffd93d11; }
+  .pill.l { color: #6bcb77; border-color: #6bcb7744; background: #6bcb7711; }
+  .pill.c { color: #4d96ff; border-color: #4d96ff44; background: #4d96ff11; }
+  .pill.f { color: #ff6b6b; border-color: #ff6b6b44; background: #ff6b6b11; }
+  .pill.io{ color: #c77dff; border-color: #c77dff44; background: #c77dff11; }
+
+  /* ── TAB NAV ── */
+  .tabs {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin: 32px 20px 0;
+    position: relative; z-index: 1;
+  }
+  .tab-btn {
+    font-family: var(--font-head);
+    font-size: 1.1rem;
+    padding: 12px 28px;
+    border-radius: 999px;
+    border: 2px solid var(--border);
+    background: var(--card);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.25s;
+    letter-spacing: 0.5px;
+  }
+  .tab-btn:hover { border-color: var(--accent4); color: var(--text); }
+  .tab-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(255,107,107,0.4);
+  }
+  .tab-btn.active.dice {
+    background: var(--accent4);
+    border-color: var(--accent4);
+    box-shadow: 0 4px 20px rgba(77,150,255,0.4);
+  }
+
+  /* ── MAIN LAYOUT ── */
+  .main {
+    max-width: 1100px;
+    margin: 32px auto;
+    padding: 0 20px 60px;
+    position: relative; z-index: 1;
+  }
+
+  .game-panel { display: none; }
+  .game-panel.active { display: block; }
+
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1.1fr;
+    gap: 24px;
+    align-items: start;
+  }
+  @media (max-width: 760px) {
+    .two-col { grid-template-columns: 1fr; }
+  }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+  }
+  .card-title {
+    font-family: var(--font-head);
+    font-size: 1.3rem;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .card-title span.icon {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+  }
+
+  /* ── FORM ELEMENTS ── */
+  label {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 800;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+  input[type="number"], input[type="text"], select {
+    width: 100%;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 1rem;
+    font-weight: 700;
+    padding: 12px 16px;
+    outline: none;
+    transition: border-color 0.2s;
+    margin-bottom: 18px;
+    appearance: none;
+  }
+  input:focus, select:focus { border-color: var(--accent4); }
+
+  .radio-group {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+  }
+  .radio-btn {
+    flex: 1;
+    min-width: 90px;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 800;
+    font-size: 0.88rem;
+    color: var(--muted);
+    user-select: none;
+  }
+  .radio-btn:hover { border-color: var(--accent4); color: var(--text); }
+  .radio-btn.selected {
+    border-color: var(--accent2);
+    color: var(--accent2);
+    background: rgba(255, 217, 61, 0.1);
+  }
+
+  /* ── BUTTONS ── */
+  .btn {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    border: none;
+    font-family: var(--font-head);
+    font-size: 1.1rem;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 4px;
+  }
+  .btn-red {
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(255,107,107,0.35);
+  }
+  .btn-red:hover { transform: translateY(-2px); box-shadow: 0 6px 22px rgba(255,107,107,0.5); }
+  .btn-red:active { transform: translateY(0); }
+
+  .btn-blue {
+    background: var(--accent4);
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(77,150,255,0.35);
+  }
+  .btn-blue:hover { transform: translateY(-2px); box-shadow: 0 6px 22px rgba(77,150,255,0.5); }
+
+  .btn-ghost {
+    background: transparent;
+    border: 2px solid var(--border);
+    color: var(--muted);
+    margin-top: 10px;
+  }
+  .btn-ghost:hover { border-color: var(--text); color: var(--text); }
+
+  /* ── OUTPUT / LOG ── */
+  .output-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    min-height: 340px;
+    display: flex;
+    flex-direction: column;
+  }
+  .output-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .output-title {
+    font-family: var(--font-head);
+    font-size: 1.1rem;
+    color: var(--muted);
+  }
+  .status-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--accent3);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+  .log {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-right: 4px;
+  }
+  .log::-webkit-scrollbar { width: 4px; }
+  .log::-webkit-scrollbar-track { background: transparent; }
+  .log::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .log-msg {
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    line-height: 1.5;
+    animation: slideIn 0.3s ease;
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-10px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  .log-info  { background: rgba(255,255,255,0.05); color: var(--text); }
+  .log-high  { background: rgba(255,107,107,0.12); color: #ff9e9e; border-left: 3px solid var(--accent); }
+  .log-low   { background: rgba(77,150,255,0.12); color: #9ec8ff; border-left: 3px solid var(--accent4); }
+  .log-hot   { background: rgba(255,107,107,0.18); color: var(--accent2); border-left: 3px solid var(--accent2); }
+  .log-win   { background: rgba(107,203,119,0.15); color: var(--accent3); border-left: 3px solid var(--accent3); font-size: 1.05rem; }
+  .log-lose  { background: rgba(255,107,107,0.1); color: var(--muted); border-left: 3px solid var(--border); }
+  .log-system{ background: rgba(255,255,255,0.03); color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--border); padding-top: 12px; margin-top: 4px; }
+
+  /* ── GUESS TRACKER ── */
+  .guess-track {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 16px;
+  }
+  .guess-bubble {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 800;
+    animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes popIn {
+    from { transform: scale(0); opacity: 0; }
+    to   { transform: scale(1); opacity: 1; }
+  }
+  .bubble-high { background: rgba(255,107,107,0.2); border: 2px solid var(--accent); color: var(--accent); }
+  .bubble-low  { background: rgba(77,150,255,0.2); border: 2px solid var(--accent4); color: var(--accent4); }
+  .bubble-win  { background: rgba(107,203,119,0.3); border: 2px solid var(--accent3); color: var(--accent3); }
+
+  /* Progress bar */
+  .progress-wrap {
+    margin-top: 16px;
+  }
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: var(--muted);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+  .progress-bar {
+    height: 8px;
+    background: var(--border);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.4s ease;
+    background: linear-gradient(90deg, var(--accent3), var(--accent2));
+  }
+  .progress-fill.danger { background: linear-gradient(90deg, var(--accent), #ff4500); }
+
+  /* ── DICE UI ── */
+  .dice-display {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    justify-content: center;
+    padding: 20px 0;
+    min-height: 120px;
+    align-items: center;
+  }
+
+  .die {
+    width: 80px; height: 80px;
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2rem;
+    position: relative;
+    transition: transform 0.15s;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  .die.rolling {
+    animation: rollAnim 0.5s ease;
+  }
+  @keyframes rollAnim {
+    0%   { transform: rotate(0deg) scale(1); }
+    25%  { transform: rotate(15deg) scale(1.1); }
+    50%  { transform: rotate(-15deg) scale(0.9); }
+    75%  { transform: rotate(8deg) scale(1.05); }
+    100% { transform: rotate(0deg) scale(1); }
+  }
+  .die-dots {
+    display: grid;
+    width: 54px; height: 54px;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 3px;
+    padding: 4px;
+  }
+  .dot {
+    background: var(--text);
+    border-radius: 50%;
+    width: 100%; height: 100%;
+    transition: opacity 0.2s;
+  }
+  .dot.hidden { opacity: 0; }
+
+  /* Score boards */
+  .scoreboard {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .score-card {
+    background: var(--bg);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    text-align: center;
+    transition: border-color 0.3s;
+  }
+  .score-card.active-player { border-color: var(--accent2); }
+  .score-card .s-name {
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+  .score-card .s-val {
+    font-family: var(--font-head);
+    font-size: 2rem;
+    color: var(--text);
+  }
+  .score-card .s-round {
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* Round indicator */
+  .rounds-row {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    margin: 14px 0;
+  }
+  .round-pip {
+    width: 28px; height: 6px;
+    border-radius: 999px;
+    background: var(--border);
+    transition: background 0.3s;
+  }
+  .round-pip.done { background: var(--accent4); }
+  .round-pip.current { background: var(--accent2); }
+
+  /* Concept sidebar */
+  .concept-box {
+    background: rgba(255,217,61,0.06);
+    border: 1px solid rgba(255,217,61,0.2);
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 20px;
+  }
+  .concept-box h4 {
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: var(--accent2);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+  .concept-box ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .concept-box li {
+    font-size: 0.85rem;
+    color: var(--muted);
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .concept-box li::before {
+    content: '→';
+    color: var(--accent2);
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+
+  /* Number range visualiser */
+  .range-bar {
+    position: relative;
+    height: 32px;
+    background: var(--bg);
+    border-radius: 999px;
+    margin: 12px 0;
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .range-fill {
+    position: absolute;
+    height: 100%;
+    background: rgba(77,150,255,0.15);
+    border-right: 2px solid var(--accent4);
+    transition: width 0.4s ease;
+  }
+  .range-fill.left-fill {
+    left: 0;
+    border-right: none;
+    border-left: none;
+    background: rgba(255,107,107,0.15);
+  }
+  .range-label {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: var(--muted);
+    padding: 0 10px;
+  }
+  .range-label.right { right: 0; }
+
+  /* Divider */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 20px 0;
+  }
+
+  /* Empty state */
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    gap: 10px;
+    opacity: 0.6;
+    text-align: center;
+  }
+  .empty-state span { font-size: 2.5rem; }
+  .empty-state p { font-size: 0.9rem; font-weight: 600; }
+
+  /* ── BACKEND CODE EXPLAINER ── */
+  .code-panel {
+    background: #0d0c14;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-top: 24px;
+  }
+  .code-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 18px;
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    font-size: 0.82rem;
+    font-weight: 800;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+  }
+  .code-dot { width: 10px; height: 10px; border-radius: 50%; }
+  pre {
+    padding: 20px;
+    overflow-x: auto;
+    font-size: 0.82rem;
+    line-height: 1.7;
+    color: #cdd6f4;
+    font-family: 'Courier New', monospace;
+    margin: 0;
+  }
+  .kw  { color: #cba6f7; }  /* keyword */
+  .fn  { color: #89b4fa; }  /* function */
+  .st  { color: #a6e3a1; }  /* string */
+  .cm  { color: #6c7086; }  /* comment */
+  .nm  { color: #fab387; }  /* number */
+  .bi  { color: #f38ba8; }  /* built-in */
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 30px; left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 12px 24px;
+    font-weight: 800;
+    font-size: 0.95rem;
+    z-index: 9999;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🎮 Game Lab</h1>
+  <p>Phase 1 — Logic & Programming Foundations</p>
+  <div class="concept-pills">
+    <span class="pill v">Variables</span>
+    <span class="pill io">Input / Output</span>
+    <span class="pill c">Conditions</span>
+    <span class="pill l">Loops</span>
+    <span class="pill f">Functions</span>
+    <span class="pill l">Lists</span>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('guess')">🎯 Guess the Number</button>
+  <button class="tab-btn dice"   onclick="switchTab('dice')">🎲 Dice Simulator</button>
+</div>
+
+<div class="main">
+
+  <!-- ═══════════════════════════════════════════
+       PANEL 1: GUESS THE NUMBER
+  ═══════════════════════════════════════════ -->
+  <div class="game-panel active" id="panel-guess">
+    <div class="two-col">
+
+      <!-- Controls -->
+      <div>
+        <div class="card">
+          <div class="card-title">
+            <span class="icon" style="background:rgba(255,107,107,0.15)">🎯</span>
+            Game Setup
+          </div>
+
+          <label>Your Name</label>
+          <input type="text" id="g-name" placeholder="Type your name..." maxlength="20">
+
+          <label>Difficulty</label>
+          <div class="radio-group" id="g-diff">
+            <div class="radio-btn" data-val="15" onclick="selectDiff(this)">🟢 Easy<br><small style="font-size:0.7rem;color:var(--muted)">15 tries</small></div>
+            <div class="radio-btn selected" data-val="10" onclick="selectDiff(this)">🟡 Medium<br><small style="font-size:0.7rem;color:var(--muted)">10 tries</small></div>
+            <div class="radio-btn" data-val="5"  onclick="selectDiff(this)">🔴 Hard<br><small style="font-size:0.7rem;color:var(--muted)">5 tries</small></div>
+          </div>
+
+          <button class="btn btn-red" id="g-start-btn" onclick="startGuessGame()">▶ Start Game</button>
+        </div>
+
+        <!-- Input during game -->
+        <div class="card" id="g-input-card" style="margin-top:16px; display:none">
+          <div class="card-title">
+            <span class="icon" style="background:rgba(77,150,255,0.15)">🔢</span>
+            Your Guess
+          </div>
+
+          <!-- Range visualiser -->
+          <div id="g-range-label" style="font-size:0.82rem;color:var(--muted);font-weight:700;margin-bottom:6px">Range: 1 – 100</div>
+          <div class="range-bar">
+            <div class="range-fill left-fill" id="g-range-low" style="width:0%"></div>
+            <div class="range-fill" id="g-range-high" style="width:100%"></div>
+            <span class="range-label">1</span>
+            <span class="range-label right">100</span>
+          </div>
+
+          <input type="number" id="g-guess-input" min="1" max="100" placeholder="Enter 1 – 100"
+                 onkeydown="if(event.key==='Enter') submitGuess()">
+          <button class="btn btn-red" onclick="submitGuess()">Submit Guess</button>
+          <button class="btn btn-ghost" onclick="resetGuess()">↺ New Game</button>
+
+          <div class="progress-wrap">
+            <div class="progress-label">
+              <span>Attempts Used</span>
+              <span id="g-attempts-label">0 / 10</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" id="g-progress" style="width:0%"></div>
+            </div>
+          </div>
+
+          <div class="guess-track" id="g-history"></div>
+        </div>
+
+        <!-- Concept box -->
+        <div class="concept-box" style="margin-top:16px">
+          <h4>🧠 Concepts at Work in This Game</h4>
+          <ul>
+            <li><strong>Variable:</strong> <code>secret_number</code> stores the hidden value</li>
+            <li><strong>Loop:</strong> the game keeps asking until you win or run out of tries</li>
+            <li><strong>Condition:</strong> <code>if guess &lt; secret</code> → "too low"</li>
+            <li><strong>Function:</strong> <code>give_hint()</code> handles the comparison logic</li>
+            <li><strong>List:</strong> <code>history</code> stores all your previous guesses</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Output -->
+      <div class="output-card">
+        <div class="output-header">
+          <span class="output-title">📟 Game Output</span>
+          <div class="status-dot" id="g-status-dot"></div>
+        </div>
+        <div class="log" id="g-log">
+          <div class="empty-state">
+            <span>🎯</span>
+            <p>Press Start Game to begin.<br>Your game output will appear here.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Python Code -->
+    <div class="code-panel">
+      <div class="code-header">
+        <div class="code-dot" style="background:#ff5f57"></div>
+        <div class="code-dot" style="background:#ffbd2e"></div>
+        <div class="code-dot" style="background:#28c840"></div>
+        <span style="margin-left:8px">guess_the_number.py — Backend (Python)</span>
+      </div>
+<pre><span class="cm"># This is the Python code running the logic behind the UI above</span>
+
+<span class="kw">import</span> random   <span class="cm"># Module that gives us random numbers</span>
+
+<span class="kw">def</span> <span class="fn">give_hint</span>(guess, secret_number):
+    difference = <span class="bi">abs</span>(guess - secret_number)  <span class="cm"># How far away?</span>
+
+    <span class="kw">if</span> guess == secret_number:
+        <span class="kw">return</span> <span class="st">"correct"</span>
+    <span class="kw">elif</span> guess &lt; secret_number:
+        direction = <span class="st">"Too low ⬆"</span>
+    <span class="kw">else</span>:
+        direction = <span class="st">"Too high ⬇"</span>
+
+    <span class="kw">if</span> difference &lt;= <span class="nm">5</span>:
+        temperature = <span class="st">"🔥 Burning hot!"</span>
+    <span class="kw">elif</span> difference &lt;= <span class="nm">15</span>:
+        temperature = <span class="st">"☀️ Getting warm..."</span>
+    <span class="kw">elif</span> difference &lt;= <span class="nm">30</span>:
+        temperature = <span class="st">"❄️ Cold..."</span>
+    <span class="kw">else</span>:
+        temperature = <span class="st">"🧊 Freezing!"</span>
+
+    <span class="kw">return</span> <span class="bi">f</span><span class="st">"{direction} — {temperature}"</span>
+
+<span class="kw">def</span> <span class="fn">play_game</span>(max_attempts):
+    secret = random.randint(<span class="nm">1</span>, <span class="nm">100</span>)  <span class="cm"># Pick a hidden number</span>
+    history = []                       <span class="cm"># Empty list for guesses</span>
+    attempts = <span class="nm">0</span>
+
+    <span class="kw">while</span> attempts &lt; max_attempts:    <span class="cm"># Loop until attempts run out</span>
+        guess = <span class="bi">int</span>(<span class="bi">input</span>(<span class="st">"Your guess: "</span>))
+        attempts += <span class="nm">1</span>
+        history.append(guess)          <span class="cm"># Add to the list</span>
+
+        result = give_hint(guess, secret)
+        <span class="kw">if</span> result == <span class="st">"correct"</span>:
+            <span class="bi">print</span>(<span class="st">f"🎉 You got it in {attempts} tries!"</span>)
+            <span class="kw">break</span>
+        <span class="bi">print</span>(result)</pre>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════
+       PANEL 2: DICE SIMULATOR
+  ═══════════════════════════════════════════ -->
+  <div class="game-panel" id="panel-dice">
+    <div class="two-col">
+
+      <!-- Controls -->
+      <div>
+        <div class="card">
+          <div class="card-title">
+            <span class="icon" style="background:rgba(77,150,255,0.15)">🎲</span>
+            Game Setup
+          </div>
+
+          <label>Game Mode</label>
+          <div class="radio-group" id="d-mode-btns">
+            <div class="radio-btn selected" data-val="single" onclick="selectMode(this)">👤 Solo<br><small style="font-size:0.7rem;color:var(--muted)">Challenge</small></div>
+            <div class="radio-btn" data-val="multi" onclick="selectMode(this)">👥 2 Players<br><small style="font-size:0.7rem;color:var(--muted)">Versus</small></div>
+          </div>
+
+          <div id="d-p1-wrap">
+            <label>Player 1 Name</label>
+            <input type="text" id="d-p1" placeholder="Player 1..." maxlength="16">
+          </div>
+          <div id="d-p2-wrap" style="display:none">
+            <label>Player 2 Name</label>
+            <input type="text" id="d-p2" placeholder="Player 2..." maxlength="16">
+          </div>
+
+          <label>Number of Rounds</label>
+          <div class="radio-group" id="d-rounds-btns">
+            <div class="radio-btn" data-val="1" onclick="selectRounds(this)">1</div>
+            <div class="radio-btn selected" data-val="3" onclick="selectRounds(this)">3</div>
+            <div class="radio-btn" data-val="5" onclick="selectRounds(this)">5</div>
+          </div>
+
+          <button class="btn btn-blue" onclick="startDiceGame()">▶ Start Game</button>
+        </div>
+
+        <!-- Dice roller -->
+        <div class="card" id="d-roll-card" style="margin-top:16px; display:none">
+          <div class="card-title">
+            <span class="icon" style="background:rgba(77,150,255,0.15)">🎲</span>
+            <span id="d-turn-label">Your Turn</span>
+          </div>
+
+          <label>How many dice? (1–6)</label>
+          <div class="radio-group" id="d-dice-count">
+            <div class="radio-btn selected" data-val="1" onclick="selectCount(this)">1</div>
+            <div class="radio-btn" data-val="2" onclick="selectCount(this)">2</div>
+            <div class="radio-btn" data-val="3" onclick="selectCount(this)">3</div>
+            <div class="radio-btn" data-val="4" onclick="selectCount(this)">4</div>
+            <div class="radio-btn" data-val="6" onclick="selectCount(this)">6</div>
+          </div>
+
+          <button class="btn btn-blue" id="d-roll-btn" onclick="rollDice()">🎲 Roll!</button>
+          <button class="btn btn-ghost" onclick="resetDice()">↺ New Game</button>
+
+          <!-- Round pips -->
+          <div class="rounds-row" id="d-round-pips"></div>
+
+          <!-- Scoreboard -->
+          <div class="scoreboard" id="d-scoreboard"></div>
+        </div>
+
+        <!-- Concept box -->
+        <div class="concept-box" style="margin-top:16px">
+          <h4>🧠 Concepts at Work in This Game</h4>
+          <ul>
+            <li><strong>Function:</strong> <code>roll_single_die()</code> rolls one die</li>
+            <li><strong>For Loop:</strong> roll N dice using <code>for i in range(n)</code></li>
+            <li><strong>List:</strong> <code>results = []</code> collects all rolls</li>
+            <li><strong>Variable:</strong> <code>total</code> accumulates the score</li>
+            <li><strong>Condition:</strong> compare scores to find the winner</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Output -->
+      <div class="output-card">
+        <div class="output-header">
+          <span class="output-title">📟 Game Output</span>
+          <div class="status-dot"></div>
+        </div>
+
+        <!-- Dice display -->
+        <div class="dice-display" id="d-dice-display">
+          <div style="text-align:center;color:var(--muted);font-size:0.9rem;font-weight:700;opacity:0.5">
+            <div style="font-size:2.5rem;margin-bottom:8px">🎲</div>
+            Roll the dice to see them here
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="log" id="d-log">
+          <div class="empty-state" style="min-height:120px">
+            <p>Press Start Game to begin.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Python Code -->
+    <div class="code-panel">
+      <div class="code-header">
+        <div class="code-dot" style="background:#ff5f57"></div>
+        <div class="code-dot" style="background:#ffbd2e"></div>
+        <div class="code-dot" style="background:#28c840"></div>
+        <span style="margin-left:8px">dice_simulator.py — Backend (Python)</span>
+      </div>
+<pre><span class="cm"># This is the Python code powering the dice logic above</span>
+
+<span class="kw">import</span> random
+
+<span class="kw">def</span> <span class="fn">roll_single_die</span>():
+    <span class="kw">return</span> random.randint(<span class="nm">1</span>, <span class="nm">6</span>)   <span class="cm"># One random number 1–6</span>
+
+<span class="kw">def</span> <span class="fn">roll_multiple_dice</span>(num_dice):
+    results = []                      <span class="cm"># Start with empty list</span>
+    <span class="kw">for</span> i <span class="kw">in</span> <span class="bi">range</span>(num_dice):        <span class="cm"># Loop once per die</span>
+        result = roll_single_die()
+        results.append(result)        <span class="cm"># Add to list</span>
+    <span class="kw">return</span> results
+
+<span class="kw">def</span> <span class="fn">calculate_total</span>(dice_results):
+    total = <span class="nm">0</span>
+    <span class="kw">for</span> value <span class="kw">in</span> dice_results:       <span class="cm"># Add up each die value</span>
+        total = total + value
+    <span class="kw">return</span> total
+
+<span class="kw">def</span> <span class="fn">determine_winner</span>(p1_name, p1_score, p2_name, p2_score):
+    <span class="kw">if</span> p1_score > p2_score:
+        <span class="kw">return</span> <span class="bi">f</span><span class="st">"{p1_name} wins! 🏆"</span>
+    <span class="kw">elif</span> p2_score > p1_score:
+        <span class="kw">return</span> <span class="bi">f</span><span class="st">"{p2_name} wins! 🏆"</span>
+    <span class="kw">else</span>:
+        <span class="kw">return</span> <span class="st">"It's a tie! 🤝"</span></pre>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ════════════════════════════════════════
+   TAB SWITCHING
+════════════════════════════════════════ */
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    b.classList.toggle('active', (i===0 && tab==='guess') || (i===1 && tab==='dice'));
+  });
+  document.getElementById('panel-guess').classList.toggle('active', tab==='guess');
+  document.getElementById('panel-dice').classList.toggle('active', tab==='dice');
+}
+
+/* ════════════════════════════════════════
+   UTILITY
+════════════════════════════════════════ */
+function addLog(containerId, text, cls='log-info') {
+  const log = document.getElementById(containerId);
+  // Remove empty state
+  const empty = log.querySelector('.empty-state');
+  if (empty) empty.remove();
+
+  const div = document.createElement('div');
+  div.className = 'log-msg ' + cls;
+  div.innerHTML = text;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function selectRadio(group, clicked) {
+  group.querySelectorAll('.radio-btn').forEach(b => b.classList.remove('selected'));
+  clicked.classList.add('selected');
+}
+
+/* ════════════════════════════════════════
+   GUESS THE NUMBER — GAME STATE
+════════════════════════════════════════ */
+const G = {
+  secret: 0, maxAttempts: 10, attempts: 0,
+  history: [], running: false,
+  rangeLow: 1, rangeHigh: 100
+};
+
+function selectDiff(el) {
+  selectRadio(document.getElementById('g-diff'), el);
+}
+
+function startGuessGame() {
+  const name = document.getElementById('g-name').value.trim() || 'Player';
+  const sel = document.querySelector('#g-diff .selected');
+  G.maxAttempts = parseInt(sel?.dataset.val || '10');
+  G.secret = Math.floor(Math.random() * 100) + 1;
+  G.attempts = 0;
+  G.history = [];
+  G.running = true;
+  G.rangeLow = 1;
+  G.rangeHigh = 100;
+  G.name = name;
+
+  document.getElementById('g-input-card').style.display = 'block';
+  document.getElementById('g-start-btn').textContent = '↺ Restart';
+  document.getElementById('g-guess-input').value = '';
+  document.getElementById('g-history').innerHTML = '';
+
+  // Clear log
+  document.getElementById('g-log').innerHTML = '';
+  updateProgress();
+  updateRangeBar();
+
+  addLog('g-log', `🎮 <strong>Welcome, ${name}!</strong>`, 'log-info');
+  addLog('g-log', `I'm thinking of a number between <strong>1</strong> and <strong>100</strong>.`, 'log-info');
+  addLog('g-log', `You have <strong>${G.maxAttempts} attempts</strong>. Good luck!`, 'log-info');
+
+  document.getElementById('g-guess-input').focus();
+}
+
+function submitGuess() {
+  if (!G.running) { showToast('Start a new game first!'); return; }
+
+  const input = document.getElementById('g-guess-input');
+  const val = parseInt(input.value);
+
+  if (isNaN(val) || val < 1 || val > 100) {
+    showToast('Enter a number between 1 and 100');
+    return;
+  }
+
+  G.attempts++;
+  G.history.push(val);
+  input.value = '';
+  updateProgress();
+  addBubble(val);
+
+  // Check result
+  if (val === G.secret) {
+    const score = (G.maxAttempts - G.attempts + 1) * 100;
+    addLog('g-log', `🎉 <strong>CORRECT!</strong> The number was <strong>${G.secret}</strong>!`, 'log-win');
+    addLog('g-log', `You got it in <strong>${G.attempts}</strong> attempt${G.attempts!==1?'s':''}. Score: <strong>${score} pts</strong>`, 'log-win');
+    G.running = false;
+    return;
+  }
+
+  // Hint
+  const diff = Math.abs(val - G.secret);
+  const dir = val < G.secret ? 'Too low! ⬆' : 'Too high! ⬇';
+  let temp = diff <= 5 ? '🔥 Burning hot!' : diff <= 15 ? '☀️ Getting warm...' : diff <= 30 ? '❄️ Cold...' : '🧊 Freezing cold!';
+  const cls = val < G.secret ? 'log-low' : 'log-high';
+  const ishot = diff <= 15;
+
+  addLog('g-log', `<strong>${dir}</strong> &nbsp;${ishot ? '<strong>' : ''}${temp}${ishot ? '</strong>' : ''}`, ishot ? 'log-hot' : cls);
+
+  // Update range
+  if (val < G.secret) G.rangeLow = Math.max(G.rangeLow, val);
+  else G.rangeHigh = Math.min(G.rangeHigh, val);
+  updateRangeBar();
+
+  document.getElementById('g-range-label').textContent = `Narrowed range: ${G.rangeLow} – ${G.rangeHigh}`;
+
+  if (G.attempts >= G.maxAttempts) {
+    addLog('g-log', `💀 <strong>Out of attempts!</strong> The number was <strong>${G.secret}</strong>.`, 'log-lose');
+    G.running = false;
+  } else {
+    document.getElementById('g-guess-input').focus();
+  }
+}
+
+function addBubble(val) {
+  const track = document.getElementById('g-history');
+  const div = document.createElement('div');
+  const cls = val === G.secret ? 'bubble-win' : val < G.secret ? 'bubble-low' : 'bubble-high';
+  div.className = 'guess-bubble ' + cls;
+  div.textContent = val;
+  track.appendChild(div);
+}
+
+function updateProgress() {
+  const pct = (G.attempts / G.maxAttempts) * 100;
+  const bar = document.getElementById('g-progress');
+  bar.style.width = pct + '%';
+  bar.className = 'progress-fill' + (pct >= 70 ? ' danger' : '');
+  document.getElementById('g-attempts-label').textContent = `${G.attempts} / ${G.maxAttempts}`;
+}
+
+function updateRangeBar() {
+  const low = ((G.rangeLow - 1) / 99) * 100;
+  const high = ((G.rangeHigh - 1) / 99) * 100;
+  document.getElementById('g-range-low').style.width = low + '%';
+  document.getElementById('g-range-high').style.width = (100 - high) + '%';
+}
+
+function resetGuess() {
+  G.running = false;
+  document.getElementById('g-input-card').style.display = 'none';
+  document.getElementById('g-start-btn').textContent = '▶ Start Game';
+  document.getElementById('g-log').innerHTML = '<div class="empty-state"><span>🎯</span><p>Press Start Game to begin.</p></div>';
+  document.getElementById('g-history').innerHTML = '';
+}
+
+
+/* ════════════════════════════════════════
+   DICE SIMULATOR — GAME STATE
+════════════════════════════════════════ */
+const D = {
+  mode: 'single', rounds: 3, currentRound: 1,
+  numDice: 1, running: false,
+  scores: [0, 0], players: ['Player 1', 'Player 2'],
+  currentPlayer: 0, roundScores: [[],[]]
+};
+
+function selectMode(el) {
+  selectRadio(document.getElementById('d-mode-btns'), el);
+  D.mode = el.dataset.val;
+  document.getElementById('d-p2-wrap').style.display = D.mode === 'multi' ? 'block' : 'none';
+}
+
+function selectRounds(el) {
+  selectRadio(document.getElementById('d-rounds-btns'), el);
+  D.rounds = parseInt(el.dataset.val);
+}
+
+function selectCount(el) {
+  selectRadio(document.getElementById('d-dice-count'), el);
+  D.numDice = parseInt(el.dataset.val);
+}
+
+function startDiceGame() {
+  D.players[0] = document.getElementById('d-p1').value.trim() || 'Player 1';
+  D.players[1] = document.getElementById('d-p2').value.trim() || 'Player 2';
+  D.scores = [0, 0];
+  D.currentRound = 1;
+  D.currentPlayer = 0;
+  D.running = true;
+  D.roundScores = [[], []];
+
+  document.getElementById('d-roll-card').style.display = 'block';
+  document.getElementById('d-log').innerHTML = '';
+  document.getElementById('d-dice-display').innerHTML = '<div style="text-align:center;color:var(--muted);font-size:0.9rem;font-weight:700;opacity:0.5"><div style="font-size:2.5rem;margin-bottom:8px">🎲</div>Roll the dice!</div>';
+
+  buildRoundPips();
+  buildScoreboard();
+  updateTurnLabel();
+
+  addLog('d-log', `🎮 Game started! ${D.rounds} round${D.rounds!==1?'s':''} — ${D.mode === 'multi' ? D.players[0] + ' vs ' + D.players[1] : D.players[0] + ' (Challenge Mode)'}`, 'log-info');
+  addLog('d-log', `<strong>Round 1</strong> — ${D.players[0]}'s turn`, 'log-info');
+}
+
+function buildRoundPips() {
+  const c = document.getElementById('d-round-pips');
+  c.innerHTML = '';
+  for (let i = 1; i <= D.rounds; i++) {
+    const d = document.createElement('div');
+    d.className = 'round-pip' + (i === 1 ? ' current' : '');
+    d.id = 'd-pip-' + i;
+    c.appendChild(d);
+  }
+}
+
+function updatePips() {
+  for (let i = 1; i <= D.rounds; i++) {
+    const p = document.getElementById('d-pip-' + i);
+    if (!p) continue;
+    p.className = 'round-pip' + (i < D.currentRound ? ' done' : i === D.currentRound ? ' current' : '');
+  }
+}
+
+function buildScoreboard() {
+  const sb = document.getElementById('d-scoreboard');
+  if (D.mode === 'single') {
+    sb.innerHTML = `
+      <div class="score-card active-player" id="d-sc-0" style="grid-column:1/-1">
+        <div class="s-name">${D.players[0]}</div>
+        <div class="s-val" id="d-sv-0">0</div>
+        <div class="s-round" id="d-sr-0">Round 1 of ${D.rounds}</div>
+      </div>`;
+  } else {
+    sb.innerHTML = D.players.map((p,i) => `
+      <div class="score-card ${i===0?'active-player':''}" id="d-sc-${i}">
+        <div class="s-name">${p}</div>
+        <div class="s-val" id="d-sv-${i}">0</div>
+        <div class="s-round" id="d-sr-${i}">Round 0</div>
+      </div>`).join('');
+  }
+}
+
+function updateScoreboard() {
+  D.scores.forEach((s,i) => {
+    const sv = document.getElementById('d-sv-'+i);
+    const sr = document.getElementById('d-sr-'+i);
+    const sc = document.getElementById('d-sc-'+i);
+    if (!sv) return;
+    sv.textContent = s;
+    if (sr) sr.textContent = `Round ${Math.min(D.currentRound, D.rounds)} of ${D.rounds}`;
+    if (sc) sc.classList.toggle('active-player', D.currentPlayer === i || D.mode === 'single');
+  });
+}
+
+function updateTurnLabel() {
+  const who = D.mode === 'single' ? D.players[0] : D.players[D.currentPlayer];
+  document.getElementById('d-turn-label').textContent = `${who}'s Turn — Round ${D.currentRound}`;
+}
+
+function rollSingleDie() {
+  return Math.floor(Math.random() * 6) + 1;
+}
+
+function rollMultipleDice(n) {
+  const results = [];
+  for (let i = 0; i < n; i++) results.push(rollSingleDie());
+  return results;
+}
+
+function calculateTotal(arr) {
+  let total = 0;
+  for (const v of arr) total += v;
+  return total;
+}
+
+// Dot positions for each die face (which cells in a 3x3 grid are filled)
+const DOT_PATTERN = {
+  1: [4],
+  2: [0, 8],
+  3: [0, 4, 8],
+  4: [0, 2, 6, 8],
+  5: [0, 2, 4, 6, 8],
+  6: [0, 2, 3, 5, 6, 8]
+};
+
+function renderDie(value) {
+  const die = document.createElement('div');
+  die.className = 'die rolling';
+  const dots = document.createElement('div');
+  dots.className = 'die-dots';
+  for (let i = 0; i < 9; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'dot' + (DOT_PATTERN[value].includes(i) ? '' : ' hidden');
+    dots.appendChild(dot);
+  }
+  die.appendChild(dots);
+  setTimeout(() => die.classList.remove('rolling'), 600);
+  return die;
+}
+
+function rollDice() {
+  if (!D.running) { showToast('Start a new game first!'); return; }
+
+  const n = D.numDice;
+  const results = rollMultipleDice(n);
+  const total = calculateTotal(results);
+
+  // Render dice
+  const display = document.getElementById('d-dice-display');
+  display.innerHTML = '';
+  results.forEach(v => display.appendChild(renderDie(v)));
+
+  // Log
+  const who = D.mode === 'single' ? D.players[0] : D.players[D.currentPlayer];
+  addLog('d-log', `🎲 <strong>${who}</strong> rolled ${n} die${n>1?'ce':''}: [${results.join(', ')}] = <strong>${total}</strong>`, 'log-info');
+
+  // Update scores
+  D.scores[D.currentPlayer] += total;
+  D.roundScores[D.currentPlayer].push(total);
+  updateScoreboard();
+
+  // Advance turn / round
+  if (D.mode === 'multi') {
+    if (D.currentPlayer === 0) {
+      // P1 just rolled — P2's turn
+      D.currentPlayer = 1;
+      updateTurnLabel();
+      addLog('d-log', `Now <strong>${D.players[1]}</strong>'s turn!`, 'log-system');
+    } else {
+      // Both rolled — end of round
+      finishRound();
+    }
+  } else {
+    // Single player — just advance round
+    D.currentRound++;
+    updatePips();
+    if (D.currentRound > D.rounds) {
+      endGame();
+    } else {
+      updateTurnLabel();
+      addLog('d-log', `Round ${D.currentRound} of ${D.rounds}`, 'log-system');
+    }
+  }
+}
+
+function finishRound() {
+  const p1 = D.players[0], p2 = D.players[1];
+  const r1 = D.roundScores[0][D.currentRound-1] || 0;
+  const r2 = D.roundScores[1][D.currentRound-1] || 0;
+  const rWinner = r1 > r2 ? p1 : r2 > r1 ? p2 : 'Tie';
+  addLog('d-log', `Round ${D.currentRound} winner: <strong>${rWinner === 'Tie' ? '🤝 Tie!' : '⭐ ' + rWinner}</strong>`, 'log-info');
+
+  D.currentRound++;
+  D.currentPlayer = 0;
+  updatePips();
+
+  if (D.currentRound > D.rounds) {
+    endGame();
+  } else {
+    updateTurnLabel();
+    addLog('d-log', `<strong>Round ${D.currentRound}</strong> — ${D.players[0]}'s turn`, 'log-system');
+  }
+}
+
+function endGame() {
+  D.running = false;
+  const [s0, s1] = D.scores;
+
+  addLog('d-log', `<hr style="border:none;border-top:1px solid var(--border);margin:4px 0">`, 'log-system');
+
+  if (D.mode === 'single') {
+    addLog('d-log', `🏁 <strong>Final Score: ${D.players[0]} — ${s0} points!</strong>`, 'log-win');
+  } else {
+    const winner = s0 > s1 ? D.players[0] : s1 > s0 ? D.players[1] : null;
+    addLog('d-log', `📊 Final: ${D.players[0]}: ${s0} pts | ${D.players[1]}: ${s1} pts`, 'log-info');
+    if (winner) {
+      addLog('d-log', `🏆 <strong>${winner} WINS!</strong>`, 'log-win');
+    } else {
+      addLog('d-log', `🤝 <strong>It's a Tie!</strong>`, 'log-info');
+    }
+  }
+}
+
+function resetDice() {
+  D.running = false;
+  document.getElementById('d-roll-card').style.display = 'none';
+  document.getElementById('d-log').innerHTML = '<div class="empty-state"><p>Press Start Game to begin.</p></div>';
+  document.getElementById('d-dice-display').innerHTML = '<div style="text-align:center;color:var(--muted);font-size:0.9rem;font-weight:700;opacity:0.5"><div style="font-size:2.5rem;margin-bottom:8px">🎲</div>Roll the dice to see them here</div>';
+  document.getElementById('d-scoreboard').innerHTML = '';
+  document.getElementById('d-round-pips').innerHTML = '';
+}
+
+// init
+selectMode(document.querySelector('#d-mode-btns .selected'));
+</script>
+</body>
+</html>
